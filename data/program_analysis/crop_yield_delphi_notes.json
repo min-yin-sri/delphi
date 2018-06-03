@@ -1,7 +1,23 @@
+// Thoughts on translating from AST to DBN json (below)
+// trace through variables that have any functional relation
+// AST functions -> DBN function:
+//    Assign : assign
+//    Loop : loop_plate
+//    If :
+//      reify condition as function whose outcome is a boolean variable: <varname>.IF#
+//      break into separate function for each variable being assign'd
+//      if multiple assignments to same variables, then combine into single fn
+// other local function calls are just about wiring among variables
+//    including multiple-value return and assignment (e.g., line 28)
+
 {
+  // names file that was analyzed
   "name": "crop_yield.py",
+
+  // made it up!
   "dateCreated": "2018-05-20 10:00:00.000000",
 
+  // declarations of variables that were accumulated during traversal
   "variables": [
     {
       "name": "MAX_RAIN",
@@ -26,7 +42,7 @@
     {
       "name": "DAY",
       "dtype": "integer",
-      "role": "loop_index"
+      "role": "loop_index"  // feels important, but not sure
     },
     {
       "name": "UPDATE_EST.IF1",
@@ -34,9 +50,14 @@
     }
   ],
 
+  // specifies dynamic Bayes net (DBN)
+  // as set of functions that wire up the variables
   "functions": [
 
+    // initial setter functions - work like deterministic priors
     {
+      // 'Assign' type function name convention:
+      //   <context of function in source file, e.g. fn name>.<type=assign>.<variable-being-assigned>
       "name": "CROP_YIELD.assign.MAX_RAIN",
       "type": "assign",
       "sources": [],
@@ -72,12 +93,13 @@
       "body": ["set", "TOTAL_RAIN", 0]
     },
 
+    // This is essentially the top-level environment
     {
       "name": "CROP_YIELD",
-      "type": "top",
+      "type": "top",  // ?  "dbn", "environment"
       "sources": [],
-      "target": [ "YIELD_EST" ],
-      "body": [
+      "target": [ "YIELD_EST" ],  // "return"
+      "body": [  // specifies wiring
         {
           "function": "CROP_YIELD.assign.MAX_RAIN",
           "input": [],
@@ -106,11 +128,12 @@
         {
           "function": "CROP_YIELD.loop_1",
           "input": [ "TOTAL_RAIN", "MAX_RAIN", "CONSISTENCY", "ABSORPTION" ],
-          "output": ""
+          "output": ""  // None ?
         }
       ]
     },
 
+    // functions used in loop plate
     {
       "name": "CROP_YIELD_loop_1.assign.RAIN",
       "type": "assign",
@@ -136,26 +159,33 @@
         "TOTAL_RAIN"
       ],
       "target": "UPDATE_EST.IF1",
+      // OR, perhaps handle some conditions direclty:
+      //  ["<=", "TOTAL_RAIN", 40]
       "body": "lambda lineop=6"
     },
     {
-      "name": "UPDATE_EST.assign.YIELD_EST",
+      "name": "UPDATE_EST.assign.YIELD_EST",  // compiles 'if'
       "type": "assign",
       "sources": [
-        "UPDATE_EST.IF1",
+        "UPDATE_EST.IF1",  // the condition variable
         "TOTAL_RAIN"
       ],
       "target": "YIELD_EST",
       "body": "lambda lineop=[7, 9]"
     },
 
+    // loop plate
     {
       "name": "CROP_YIELD.loop_1",
       "type": "loop_plate",
+      // was "sources", but seems more appropriate as "variables"
+      // "variables" is the local environment for the loop plate
       "variables": [ "TOTAL_RAIN", "MAX_RAIN", "CONSISTENCY", "ABSORPTION" ],
+      // don't think "target" is relevant
+      // "target": [],
       "index_variable": "DAY",
-      "index_iteration_range": [ 1, ["+", 31, 1] ],
-      "body": [
+      "index_iteration_range": [ 1, ["+", 31, 1] ],  // needs work
+      "body": [  // specifies wiring
         {
           "function": "CROP_YIELD.loop_1.assign.RAIN",
           "input": [
@@ -164,13 +194,13 @@
               "index": 0
             },
             {
-              "variable": "CONSISTENCY"
+              "variable": "CONSISTENCY"  // does not update, so no index
             },
             {
-              "variable": "MAX_RAIN"
+              "variable": "MAX_RAIN"  // does not update, so no index
             },
             {
-              "ABSORPTION": "ABSORPTION"
+              "ABSORPTION": "ABSORPTION"  // does not update, so no index
             }
           ],
           "output": {
@@ -183,6 +213,8 @@
           "input": [
             {
               "variable": "TOTAL_RAIN",
+              // Indicates reference to previous state of TOTAL_RAIN;
+              // In initial state of unrolling, refers to "enviromental" var state
               "index": -1
             },
             {
@@ -225,6 +257,8 @@
             "index": 0
           }
         }
+        // Note: could have another nested loop here.
+        // but semantics requires unrolled representation
       ]
     }
   ]
