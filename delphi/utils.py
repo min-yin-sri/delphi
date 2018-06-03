@@ -4,21 +4,30 @@ from itertools import repeat, accumulate, islice, chain, starmap
 from functools import reduce
 from tqdm import tqdm
 from future.utils import lmap
-from typing import TypeVar, Iterator, Tuple, Callable, Iterable, List, Any, Union
+from typing import (
+    TypeVar,
+    Iterator,
+    Tuple,
+    Callable,
+    Iterable,
+    List,
+    Any,
+    Union,
+)
 
-T = TypeVar('T')
-U = TypeVar('U')
+T = TypeVar("T")
+U = TypeVar("U")
 
 
 def prepend(x: T, xs: Iterable[T]) -> Iterator[T]:
-    """ Prepend a value to an iterable. 
+    """ Prepend a value to an iterable.
 
     Parameters
     ----------
     x
         An element of type T.
     xs
-        An iterable of elements of type T. 
+        An iterable of elements of type T.
 
     Returns
     -------
@@ -44,7 +53,7 @@ def append(x: T, xs: Iterable[T]) -> Iterator[T]:
     x
         An element of type T.
     xs
-        An iterable of elements of type T. 
+        An iterable of elements of type T.
 
     Returns
     -------
@@ -77,7 +86,7 @@ def scanl(f: Callable[[T, U], T], x: T, xs: Iterable[U]) -> Iterator[T]:
     x
         An initializer element of type T.
     xs
-        An iterable of elements of type T. 
+        An iterable of elements of type T.
 
     Returns
     -------
@@ -108,7 +117,7 @@ def scanl1(f: Callable[[T, T], T], xs: Iterable[T]) -> Iterator[T]:
     f
         A binary function of two arguments of type T.
     xs
-        An iterable of elements of type T. 
+        An iterable of elements of type T.
 
     Returns
     -------
@@ -164,8 +173,11 @@ def foldl1(f: Callable[[T, T], T], xs: Iterable[T]) -> T:
 
 def flatten(xs: Union[List, Tuple]) -> List:
     """ Flatten a nested list or tuple. """
-    return sum(map(flatten, xs),[]) if (isinstance(xs,list) 
-                                     or isinstance(xs, tuple)) else [xs]
+    return (
+        sum(map(flatten, xs), [])
+        if (isinstance(xs, list) or isinstance(xs, tuple))
+        else [xs]
+    )
 
 
 def iterate(f: Callable[[T], T], x: T) -> Iterator[T]:
@@ -190,7 +202,7 @@ def take(n: int, xs: Iterable[T]) -> Iterable[T]:
 
 def ptake(n: int, xs: Iterable[T]) -> Iterable[T]:
     """ take with a tqdm progress bar. """
-    return tqdm(take(n, xs), total = n)
+    return tqdm(take(n, xs), total=n)
 
 
 def ltake(n: int, xs: Iterable[T]) -> List[T]:
@@ -213,6 +225,7 @@ def flatMap(f: Callable, xs: Iterable) -> List:
 
 def exists(x: Any) -> bool:
     return True if x is not None else False
+
 
 def repeatfunc(func, *args):
     """Repeat calls to func with specified arguments.
